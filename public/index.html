@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#09090b">
+  <title>Monikᵃ — AI Companion</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ["Inter", "system-ui", "sans-serif"]
+          },
+          animation: {
+            "fade-up": "fadeUp .35s ease-out",
+            "pulse-soft": "pulseSoft 2s infinite"
+          },
+          keyframes: {
+            fadeUp: {
+              "0%": {
+                opacity: "0",
+                transform: "translateY(10px)"
+              },
+              "100%": {
+                opacity: "1",
+                transform: "translateY(0)"
+              }
+            },
+            pulseSoft: {
+              "0%, 100%": {
+                opacity: ".45"
+              },
+              "50%": {
+                opacity: "1"
+              }
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #09090b;
+    }
+
+    body {
+      color: #f4f4f5;
+      font-family: Inter, system-ui, sans-serif;
+    }
+
+    ::selection {
+      background: rgba(244, 244, 245, .15);
+    }
+
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, .12);
+      border-radius: 999px;
+    }
+
+    .app-bg {
+      background:
+        radial-gradient(circle at 50% -15%, rgba(255,255,255,.08), transparent 35%),
+        radial-gradient(circle at 0% 100%, rgba(255,255,255,.035), transparent 30%),
+        #09090b;
+    }
+
+    .glass {
+      background: rgba(18, 18, 21, .78);
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+    }
+
+    .message-user {
+      background: #f4f4f5;
+      color: #09090b;
+      border-radius: 20px 20px 5px 20px;
+    }
+
+    .message-ai {
+      background: rgba(255,255,255,.065);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 20px 20px 20px 5px;
+    }
+
+    .avatar {
+      background:
+        linear-gradient(145deg, rgba(255,255,255,.16), rgba(255,255,255,.04));
+      border: 1px solid rgba(255,255,255,.1);
+    }
+
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: #a1a1aa;
+      animation: typing 1.2s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(2) {
+      animation-delay: .15s;
+    }
+
+    .typing-dot:nth-child(3) {
+      animation-delay: .3s;
+    }
+
+    @keyframes typing {
+      0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: .35;
+      }
+
+      30% {
+        transform: translateY(-4px);
+        opacity: 1;
+      }
+    }
+
+    .input-shell {
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.06),
+        0 15px 45px rgba(0,0,0,.35);
+    }
+
+    .send-button {
+      transition: transform .2s ease, opacity .2s ease;
+    }
+
+    .send-button:active {
+      transform: scale(.92);
+    }
+
+    .send-button:disabled {
+      opacity: .35;
+      cursor: not-allowed;
+    }
+
+    .empty-orb {
+      box-shadow:
+        0 0 70px rgba(255,255,255,.06),
+        inset 0 0 30px rgba(255,255,255,.03);
+    }
+
+    .message-content {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      line-height: 1.65;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-bg relative flex h-[100dvh] w-full flex-col">
+
+    <div class="pointer-events-none absolute left-1/2 top-[-180px] h-[360px] w-[360px] -translate-x-1/2 rounded-full bg-white/[0.025] blur-3xl"></div>
+
+    <header class="glass relative z-10 shrink-0 border-b border-white/[0.06]">
+      <div class="mx-auto flex h-[68px] max-w-4xl items-center justify-between px-4 sm:px-6">
+
+        <div class="flex items-center gap-3">
+          <div class="avatar flex h-11 w-11 items-center justify-center overflow-hidden rounded-full">
+            <span class="text-lg">🌸</span>
+          </div>
+
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-[15px] font-semibold tracking-tight">
+                Monikᵃ
+              </h1>
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+            </div>
+            <p class="text-[11px] text-zinc-500">
+              AI Companion · Online
+            </p>
+          </div>
+        </div>
+
+        <button
+          id="clearButton"
+          type="button"
+          class="rounded-xl border border-white/[0.07] bg-white/[0.035] px-3 py-2 text-xs text-zinc-400 transition hover:bg-white/[0.07] hover:text-white"
+        >
+          Bersihkan
+        </button>
+      </div>
+    </header>
+
+    <main
+      id="chatContainer"
+      class="relative z-[1] min-h-0 flex-1 overflow-y-auto px-3 py-5 sm:px-6"
+    >
+      <div id="chatMessages" class="mx-auto flex max-w-3xl flex-col gap-5 pb-4">
+
+        <div id="welcomeState" class="flex min-h-[55vh] flex-col items-center justify-center px-5 text-center">
+          <div class="empty-orb mb-5 flex h-20 w-20 items-center justify-center rounded-[28px] border border-white/[0.07] bg-white/[0.025]">
+            <span class="text-3xl">🌸</span>
+          </div>
+
+          <h2 class="text-2xl font-semibold tracking-tight sm:text-3xl">
+            Hai, aku Monikᵃ
+          </h2>
+
+          <p class="mt-2 max-w-sm text-sm leading-6 text-zinc-500">
+            Teman ngobrol digital yang siap menemani kamu kapan saja.
+          </p>
+
+          <div class="mt-6 flex flex-wrap justify-center gap-2">
+            <button class="suggestion rounded-full border border-white/[0.07] bg-white/[0.035] px-4 py-2 text-xs text-zinc-400 transition hover:bg-white/[0.07] hover:text-white" data-message="Hai Monikᵃ 👋">
+              Hai Monikᵃ 👋
+            </button>
+            <button class="suggestion rounded-full border border-white/[0.07] bg-white/[0.035] px-4 py-2 text-xs text-zinc-400 transition hover:bg-white/[0.07] hover:text-white" data-message="Temenin aku ngobrol dong">
+              Temenin aku ngobrol
+            </button>
+            <button class="suggestion rounded-full border border-white/[0.07] bg-white/[0.035] px-4 py-2 text-xs text-zinc-400 transition hover:bg-white/[0.07] hover:text-white" data-message="Menurut kamu hari ini gimana?">
+              Cerita yuk
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <footer class="relative z-10 shrink-0 px-3 pb-[max(12px,env(safe-area-inset-bottom))] pt-2 sm:px-6">
+      <div class="mx-auto max-w-3xl">
+
+        <form id="chatForm" class="input-shell glass flex items-end gap-2 rounded-[24px] border border-white/[0.07] p-2">
+
+          <textarea
+            id="messageInput"
+            rows="1"
+            maxlength="4000"
+            placeholder="Tulis pesan untuk Monikᵃ..."
+            autocomplete="off"
+            class="max-h-32 min-h-[44px] flex-1 resize-none bg-transparent px-3 py-3 text-sm leading-5 text-white outline-none placeholder:text-zinc-600"
+          ></textarea>
+
+          <button
+            id="sendButton"
+            type="submit"
+            disabled
+            class="send-button flex h-11 w-11 shrink-0 items-center justify-center rounded-[17px] bg-white text-black"
+            aria-label="Kirim pesan"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 2 11 13"/>
+              <path d="m22 2-7 20-4-9-9-4Z"/>
+            </svg>
+          </button>
+
+        </form>
+
+        <p class="mt-2 text-center text-[10px] text-zinc-700">
+          Monikᵃ dapat membuat kesalahan. Periksa informasi penting sebelum menggunakannya.
+        </p>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    const STORAGE_KEY = "monika_chat_history_v1"
+
+    const chatContainer = document.getElementById("chatContainer")
+    const chatMessages = document.getElementById("chatMessages")
+    const welcomeState = document.getElementById("welcomeState")
+    const chatForm = document.getElementById("chatForm")
+    const messageInput = document.getElementById("messageInput")
+    const sendButton = document.getElementById("sendButton")
+    const clearButton = document.getElementById("clearButton")
+
+    let messages = loadMessages()
+    let isTyping = false
+
+    function loadMessages() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY)
+
+        if (!saved) {
+          return []
+        }
+
+        const parsed = JSON.parse(saved)
+
+        if (!Array.isArray(parsed)) {
+          return []
+        }
+
+        return parsed.filter(item =>
+          item &&
+          (item.role === "user" || item.role === "assistant") &&
+          typeof item.content === "string"
+        )
+      } catch {
+        return []
+      }
+    }
+
+    function saveMessages() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages))
+    }
+
+    function escapeHTML(text) {
+      const div = document.createElement("div")
+      div.textContent = text
+      return div.innerHTML
+    }
+
+    function renderMessage(role, content, save = false) {
+      welcomeState?.remove()
+
+      const wrapper = document.createElement("div")
+      wrapper.className = `flex w-full animate-fade-up ${
+        role === "user" ? "justify-end" : "justify-start"
+      }`
+
+      if (role === "assistant") {
+        wrapper.innerHTML = `
+          <div class="flex max-w-[88%] items-end gap-2 sm:max-w-[78%]">
+            <div class="avatar flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm">
+              🌸
+            </div>
+            <div class="message-ai px-4 py-3 text-sm text-zinc-200">
+              <div class="message-content">${escapeHTML(content)}</div>
+            </div>
+          </div>
+        `
+      } else {
+        wrapper.innerHTML = `
+          <div class="max-w-[88%] sm:max-w-[78%]">
+            <div class="message-user px-4 py-3 text-sm font-medium">
+              <div class="message-content">${escapeHTML(content)}</div>
+            </div>
+          </div>
+        `
+      }
+
+      chatMessages.appendChild(wrapper)
+
+      if (save) {
+        messages.push({
+          role,
+          content
+        })
+
+        saveMessages()
+      }
+
+      scrollToBottom()
+    }
+
+    function renderHistory() {
+      if (!messages.length) {
+        return
+      }
+
+      welcomeState?.remove()
+
+      for (const message of messages) {
+        renderMessage(message.role, message.content, false)
+      }
+
+      scrollToBottom()
+    }
+
+    function createTypingBubble() {
+      welcomeState?.remove()
+
+      const wrapper = document.createElement("div")
+      wrapper.id = "typingBubble"
+      wrapper.className = "flex w-full justify-start animate-fade-up"
+
+      wrapper.innerHTML = `
+        <div class="flex max-w-[88%] items-end gap-2 sm:max-w-[78%]">
+          <div class="avatar flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm">
+            🌸
+          </div>
+
+          <div class="message-ai flex items-center gap-1.5 px-4 py-4">
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+          </div>
+        </div>
+      `
+
+      chatMessages.appendChild(wrapper)
+      scrollToBottom()
+    }
+
+    function removeTypingBubble() {
+      document.getElementById("typingBubble")?.remove()
+    }
+
+    function scrollToBottom() {
+      requestAnimationFrame(() => {
+        chatContainer.scrollTo({
+          top: chatContainer.scrollHeight,
+          behavior: "smooth"
+        })
+      })
+    }
+
+    function updateSendButton() {
+      sendButton.disabled = isTyping || !messageInput.value.trim()
+    }
+
+    function autoResize() {
+      messageInput.style.height = "auto"
+      messageInput.style.height = `${Math.min(messageInput.scrollHeight, 128)}px`
+    }
+
+    async function sendMessage(text) {
+      const content = text.trim()
+
+      if (!content || isTyping) {
+        return
+      }
+
+      renderMessage("user", content, true)
+
+      messageInput.value = ""
+      autoResize()
+      updateSendButton()
+
+      isTyping = true
+      updateSendButton()
+      createTypingBubble()
+
+      try {
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            messages: messages.slice(-20)
+          })
+        })
+
+        const data = await response.json().catch(() => ({}))
+
+        if (!response.ok || !data.status || !data.reply) {
+          throw new Error(data.message || "Gagal mendapatkan response AI")
+        }
+
+        removeTypingBubble()
+        renderMessage("assistant", data.reply, true)
+      } catch (error) {
+        console.error(error)
+
+        removeTypingBubble()
+
+        renderMessage(
+          "assistant",
+          "Maaf ya 😔 Monikᵃ lagi mengalami sedikit masalah. Coba kirim pesanmu lagi.",
+          false
+        )
+      } finally {
+        isTyping = false
+        updateSendButton()
+        messageInput.focus()
+      }
+    }
+
+    chatForm.addEventListener("submit", event => {
+      event.preventDefault()
+      sendMessage(messageInput.value)
+    })
+
+    messageInput.addEventListener("input", () => {
+      autoResize()
+      updateSendButton()
+    })
+
+    messageInput.addEventListener("keydown", event => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault()
+
+        if (!isTyping && messageInput.value.trim()) {
+          chatForm.requestSubmit()
+        }
+      }
+    })
+
+    clearButton.addEventListener("click", () => {
+      if (!messages.length) {
+        return
+      }
+
+      const confirmed = confirm("Hapus semua riwayat chat Monikᵃ?")
+
+      if (!confirmed) {
+        return
+      }
+
+      messages = []
+      localStorage.removeItem(STORAGE_KEY)
+
+      chatMessages.innerHTML = `
+        <div id="welcomeState" class="flex min-h-[55vh] flex-col items-center justify-center px-5 text-center">
+          <div class="empty-orb mb-5 flex h-20 w-20 items-center justify-center rounded-[28px] border border-white/[0.07] bg-white/[0.025]">
+            <span class="text-3xl">🌸</span>
+          </div>
+
+          <h2 class="text-2xl font-semibold tracking-tight sm:text-3xl">
+            Hai, aku Monikᵃ
+          </h2>
+
+          <p class="mt-2 max-w-sm text-sm leading-6 text-zinc-500">
+            Teman ngobrol digital yang siap menemani kamu kapan saja.
+          </p>
+
+          <div class="mt-6 flex flex-wrap justify-center gap-2">
+            <button class="suggestion rounded-full border border-white/[0.07] bg-white/[0.035] px-4 py-2 text-xs text-zinc-400 transition hover:bg-white/[0.07] hover:text-white" data-message="Hai Monikᵃ 👋">
+              Hai Monikᵃ 👋
+            </button>
+            <button class="suggestion rounded-full border border-white/[0.07] bg-white/[0.035] px-4 py-2 text-xs text-zinc-400 transition hover:bg-white/[0.07] hover:text-white" data-message="Temenin aku ngobrol dong">
+              Temenin aku ngobrol
+            </button>
+            <button class="suggestion rounded-full border border-white/[0.07] bg-white/[0.035] px-4 py-2 text-xs text-zinc-400 transition hover:bg-white/[0.07] hover:text-white" data-message="Menurut kamu hari ini gimana?">
+              Cerita yuk
+            </button>
+          </div>
+        </div>
+      `
+
+      bindSuggestions()
+    })
+
+    function bindSuggestions() {
+      document.querySelectorAll(".suggestion").forEach(button => {
+        button.addEventListener("click", () => {
+          sendMessage(button.dataset.message || "")
+        })
+      })
+    }
+
+    bindSuggestions()
+    renderHistory()
+    autoResize()
+    updateSendButton()
+  </script>
+</body>
+</html>
