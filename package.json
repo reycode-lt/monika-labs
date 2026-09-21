@@ -1,0 +1,13 @@
+{
+  "name": "monika-labs",
+  "version": "1.0.0",
+  "description": "Monikᵃ Labs AI",
+  "main": "api/chat.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "vercel dev"
+  },
+  "dependencies": {
+    "openai": "^5.12.2"
+  }
+}
